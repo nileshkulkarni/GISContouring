@@ -1,0 +1,39 @@
+from numpy import matrix
+from numpy import *
+from numpy.linalg import *
+
+from numpy import linalg
+import math
+import cmath
+
+def variogram(x,y): 
+					#x is the a 2cross n vector contaning latitude and longitude of all n point usually 110 points.
+					#y is the array of elevation 
+					#Here we are trying to find the best fit line that would satisfy for differnt h's the functional value.
+				
+	kc2=k*(k-1)/2				
+	k=shape(x)[0]
+	s=(kc2,2)
+	vario_grid=ones(s)
+	current_elm=0
+	for i in range(k)
+		for j in range (k-i)
+			vario_grid[current_elm][0]=norm(x[i],x[i+j])#change this
+			vario_grid[current_elm][1]=	((y[i]-y[i+j])**2)/2
+			current_elm=current_elm+1
+	
+	#now we will find th linear best fit
+	#we are solving for CX=D best fit
+	
+	s=(kc2,2)
+	C=ones(s)
+	s=(kc2,1)
+	D=vario_grid[:,1]
+	C[:,0]=vario_grid[:,0]
+	ct=C.T
+	
+	ctc=dot(ct,C)
+	ctci=linalg.inv(ctc)
+	ctd=dot(ct,D)
+	
+	ans=dot(ctci,ctd)
