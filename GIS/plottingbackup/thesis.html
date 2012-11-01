@@ -1,0 +1,1471 @@
+<html><head>
+<meta http-equiv="content-type" content="text/html; charset=ISO-8859-1">
+<title>Implementation of an Improved Contour Plotting Algorithm</title>
+</head>
+<body>
+<center><h1>IMPLEMENTATION OF</h1></center>
+<center><h1>AN IMPROVED CONTOUR</h1></center>
+<center><h1>PLOTTING ALGORITHM</h1></center>
+<p>
+</p><center>BY</center>
+<p>
+</p><center><a href="http://mysite.verizon.net/%7Evze2vrva/">MICHAEL JOSEPH ARAMINI</a></center>
+<p>
+</p><center>B.S., <a href="http://www.stevens.edu/">Stevens Institute of Technology</a>, 1980</center>
+<p>
+</p><center>THESIS</center>
+<p>
+</p><center>Submitted in partial fulfillment of the requirements</center>
+<center>for the degree of Master of Science in <a href="http://www.cs.uiuc.edu/">Computer Science</a></center>
+<center>in the <a href="http://www.grad.uiuc.edu/">Graduate College</a> of the</center>
+<center><a href="http://www.uiuc.edu/">University of Illinois at Urbana-Champaign</a>, 1981</center>
+<p>
+</p><center>Urbana, Illinois</center>
+<hr>
+<center><h1>Implementation of an Improved Contour</h1></center>
+<center><h1>Plotting Algorithm</h1></center>
+<p>
+</p><center><a href="http://mysite.verizon.net/%7Evze2vrva/">Michael J. Aramini</a></center>
+<p>
+</p><center><h2>Abstract</h2></center>
+<p>
+     Many efficient contour plotting algorithms tend to do poorly
+in  regions  where the slope of the surface is large.  This paper
+describes an algorithm which produces better results in those regions.
+The  algorithm presented is an extension to an algorithm
+previously developed by the author.   Sample  plots  produced  by
+both  the  original  and the improved algorithms are included for
+comparison.
+</p><hr>
+<center><h2>TABLE OF CONTENTS</h2></center>
+<p>
+<a href="#1">1 BACKGROUND</a>
+</p><dl>
+  <dd><a href="#1_1">1.1 Introduction</a>
+  </dd><dd><a href="#1_2">1.2 Methods of Contour Plotting</a> 
+  </dd><dd><a href="#1_3">1.3 Deficiencies with these Contouring Algorithms</a>
+  </dd><dd><a href="#1_4">1.4 Summary</a>
+</dd></dl>
+<a href="#2">2 IMPROVING THE LEVEL CURVE TRACING ALGORITHM</a>
+<dl>
+  <dd><a href="#2_1">2.1 Accurately Plotting Degenerate Cells</a>
+  </dd><dd><a href="#2_2">2.2 Variable Cell Size Contour Plotting Algorithms</a>
+  </dd><dd><a href="#2_3">2.3 Adaptive Contour Plotting Algorithms</a>
+</dd></dl>
+<a href="#3">3 CONCLUSION</a>
+<dl>
+  <dd><a href="#3_1">3.1 Possible Further Research</a>
+</dd></dl>
+<hr>
+<a name="1"><h2>1  BACKGROUND</h2></a>
+<p>
+<a name="1_1"></a></p><h3><a name="1_1">1.1  Introduction</a></h3>
+<p>
+    A contour plot is a set of level curves of different heights of a  function
+of  two variables. A level curve of height h of a function &nbsp;<var>f</var>(<var>x</var>,&nbsp;<var>y</var>) is the set of
+all points (<var>x</var>,&nbsp;<var>y</var>) such that <nobr>&nbsp;<var>f</var>(<var>x</var>,&nbsp;<var>y</var>) = <var>h</var>.</nobr> For a  well-behaved  function,  a  level
+curve is typically one or more simple closed curves.
+</p><p>
+    There are a number of methods of having a computer draw contour plots,  but
+almost  all  of  them  work  by  numerically approximating the coordinates of a
+finite number of points on a level curve and plotting a curve that  fits  these
+points. The principal differences between the methods are in how the points are
+approximated and how the curve to fit them is generated. Another difference  is
+whether  the function to be contoured is presented as a procedure that computes
+the function at arbitrary points or as a table of values of the function  at  a
+fixed set of points.
+</p><p>
+<a name="1_2"></a></p><h3><a name="1_2">1.2  Methods of Contour Plotting</a></h3>
+<p>
+    An examination of the computer science literature and of user documentation
+for  computer graphics software shows that almost all of the methods of contour
+plotting are variations of two  basic  algorithms.   In  this  paper,  the  two
+algorithms  will  be  referred  to as the level curve tracing algorithm and the
+recursive subdivision algorithm.
+</p><p>
+</p><h4>1.2.1  The Level Curve Tracing Algorithm. </h4>This algorithm seems like the obvious
+way  to do contour plotting in the case where the function values are available
+only at vertices of a  rectangular  grid.  Variations  of  this  algorithm  are
+presented in [<a href="#aramini_1980">Aramini 1980</a>], [<a href="#cottafava_le_moli_1969">Cottafava &amp; Le Moli 1969</a>], [<a href="#karney_1977">Karney 1977</a>], [<a href="#wright_1975">Wright
+1975</a>], and [<a href="#yates_1978">Yates 1978</a>]. The description that follows is based on the variation
+of  the  algorithm as presented in [<a href="#aramini_1980">Aramini 1980</a>]. Specific differences between
+this and the other variations will be described afterwards.
+<p>
+    The algorithm takes as input a two-dimensional array of function values,  a
+one-dimensional  array  of  level  curve heights, together with parameters that
+specify the size of each array and the range  of  <var>X</var>  and  <var>Y</var>  coordinates.  Each
+element  of  the  two-dimensional  array  contains  the  numerical value of the
+function evaluated at the coordinates of the grid vertex specified by the array
+subscripts of that element.
+</p><p>
+    For each element of the level curve height array, the  following  is  done.
+All  edges  in  the  grid  that are considered to be intersected by the current
+level curve are marked. This marking  is  represented  by  two  two-dimensional
+arrays of Boolean variables, one array each for the horizontal and the vertical
+edges. An edge is considered to be intersected if the function evaluated at one
+endpoint  is less than the height of the level curve and the function evaluated
+at the other endpoint is greater than the  height  of  the  level  curve.  Each
+vertex that precisely lies on the current level curve is also marked in another
+two-dimensional Boolean array. Next each  of  these  three  Boolean  arrays  is
+scanned  until an element which is set is found. Adjacent edges and vertices to
+this marked edge or vertex are checked to determine which ones are also marked.
+If there are any adjacent marked edges or vertices, then the coordinates of all
+but one of them are pushed onto a  stack,  while  a  line  segment  is  plotted
+between  the  current  edge  or vertex and the adjacent one that was not pushed
+onto the stack. For the purpose of plotting the  line  segment,  the  point  of
+intersection  between  an  edge  and  a  level curve is approximated by reverse
+linear interpolation. The edge or vertex not pushed onto the stack then becomes
+the  current  one.   This  procedure of checking adjacent edges and vertices is
+repeated, unmarking the edges  and  vertices  that  become  current,  until  no
+adjacent  edges  or  vertices  are found. When that happens and there are still
+elements on the stack, then the stack is popped, the edge or vertex popped  off
+becomes the current one, and the adjacent-checking procedure is resumed. If the
+stack is empty, then the scanning of the Boolean arrays  is  resumed,  and  the
+adjacent  checking  procedure  is entered when another marked edge or vertex is
+found. Plotting of the level curve of a particular height is completed when all
+three arrays have been completely scanned.
+</p><p>
+    The algorithm presented in [<a href="#cottafava_le_moli_1969">Cottafava &amp; Le Moli 1969</a>] is  almost  identical
+to  the  one  presented  in  [<a href="#aramini_1980">Aramini 1980</a>], with the exception that instead of
+having to deal with vertices that are precisely on a level curve as  a  special
+case,  they  are  treated  as  if  the value of the function evaluated at those
+vertices was infinitesimally smaller or  larger.  Thus  level  curves  that  in
+reality go precisely through a vertex will be treated as if they intersect some
+of  the  edges  that  terminate  on  that  vertex.  But  since  reverse  linear
+interpolation will determine the point of the intersection to be at the vertex,
+the results appear the same in most cases. The advantage of this  variation  is
+that  storage  is  not  needed  for marking vertices; further, the algorithm is
+simpler as it only has to deal with level curves intersecting edges instead  of
+also having to deal with the intersections with vertices.
+</p><p>
+    In [<a href="#wright_1975">Wright 1975</a>], the marking of edges is not  done.  Instead  of  scanning
+Boolean arrays to determine which edges are marked, the scanning is done of the
+function  value  array.  The  edge  intersection  determination  is   done   by
+numerically  comparing  adjacent  elements of the function value array with the
+height being contoured. In order to prevent retracing of the same level  curve,
+the  coordinates  of  each  grid  cell  through  which the level curve has been
+plotted so far are stored in an array. When scanning to find an  edge  that  is
+intersected  by  the level curve in order to begin plotting it, the contents of
+the array containing the coordinates of already plotted cells can  be  searched
+to  determine whether or not the portion of the level curve that intersects the
+edge in question has already been  plotted.  Since  in  general  only  a  small
+fraction  of  the  total  number  of  cells in the region being considered will
+contain a portion of a given level curve, this variation has the  advantage  of
+usually  needing less storage than the variations that mark edges using Boolean
+arrays.
+</p><p>
+    In [<a href="#karney_1977">Karney 1977</a>] and [<a href="#yates_1978">Yates 1978</a>], grid  cells  are  triangles  instead  of
+being  rectangles.  In  [<a href="#yates_1978">Yates  1978</a>]  this is done by having diagonal edges in
+addition to having horizontal and vertical ones. The diagonal  edges  used  are
+the  ones  that  connect the top left corner to the bottom right corner of what
+would otherwise be a grid rectangle, but this choice is arbitrary and using the
+other  diagonal  edges  would  work  equally  well.   The  plotting  is done by
+systematically examining each triangular grid  cell.  Intersection  points,  if
+any,  between  each edge of the cell and a given level curve are computed using
+reverse linear interpolation. Line segments are  plotted  between  intersection
+points of a level curve with each of two edges belonging to the cell. Note that
+if any edges belonging to a triangular cell are intersected by  a  given  level
+curve  then  exactly  two edges are intersected. This property avoids a problem
+associated with rectangular grid cells, namely the problem of how to  determine
+which  intersection  points  to  connect  to which other intersection points in
+those cells where  all  four  edges  are  intersected.   The  two  most  likely
+possibilities   are   to  connect  the  left  intersection  point  to  the  top
+intersection point and connect the right with the bottom,  or  to  connect  the
+left  to the bottom and the right with the top. Using the diagonal edges evades
+this problem, but does not cure it. As it turns out, in those  cases  in  which
+all  four  edges  of  a rectangular cell would be intersected by a level curve,
+using triangular grid cells would cause line segments to be plotted  such  that
+the  diagonal edge is not crossed. Statistically this choice of connecting will
+be correct only half of the time since the other possible choice of  connecting
+is equally probable of being correct.
+</p><p>
+    The triangular grid used in [<a href="#karney_1977">Karney  1977</a>]  is  different  than  in  [<a href="#yates_1978">Yates
+1978</a>].  In  [<a href="#karney_1977">Karney  1977</a>]  there is an additional vertex in the center of each
+cell of the rectangular grid. The function value used for this  central  vertex
+is  the mean of the function values for the four adjacent corner vertices. Thus
+each rectangle of the original rectangular grid is replaced by four  triangles.
+This  variation  will  allow  either  matching  of  intersection  points of the
+original rectangular grid to occur depending on  the  function  values  at  the
+vertices  and  the height of the level curve, so that it is more likely to make
+the correct choice than the variation given in [<a href="#yates_1978">Yates 1978</a>]. However, having so
+many  diagonal edges tends to cause the level curve plotted to wiggle more than
+in the other variations.  Also it is possible for plotted level curves  of  two
+different heights to cross, while it is not possible for actual level curves to
+cross.
+</p><p>
+</p><h4>1.2.2  The Recursive Subdivision Algorithm. </h4>The recursive subdivision algorithm
+is  used  in  [<a href="#bruss_1977">Bruss 1977</a>] and [<a href="#grz">GRZ</a>]. A specific implementation is presented in
+[<a href="#aramini_1980">Aramini 1980</a>]. The algorithm starts by dividing the region to be plotted  into
+a  grid.  This initial grid can be fairly coarse. For each cell in this initial
+grid, the following is done for each level curve height to be plotted.  If  the
+minimum  of the values of the function evaluated at each of the four corners of
+the cell is less than or equal to the height of the level curve and the maximum
+of  these  four values is greater than or equal to this height then the cell is
+divided into four equally sized subcells.  This test is applied to each of  the
+subcells  recursively.  This  process  of subdivision continues until this test
+fails or some minimal cell size is reached. In the latter case, and if the test
+is  satisfied,  the  point in the center of the cell is considered to be on the
+level curve.  If the function values only were available at vertices of a grid,
+then the size of the cells in that grid is used as the minimal size of cells in
+the subdivision process.  If, on the other hand, the function can  be  computed
+at  arbitrary  points  by a procedure, then the minimal cell size used would be
+comparable to the resolution of the plotting device to be used.
+<p>
+    Note that a set of discrete points on the level curve is obtained  by  this
+algorithm  rather  than  a connected set of line segments. If a raster plotting
+device is being used and the minimal cell size used matches the  resolution  of
+the plotting device, then this is desirable. If on the other hand line segments
+are needed, to plot on a pen plotter, for instance, as in the  case  of  [<a href="#grz">GRZ</a>],
+then  a list of points can be maintained until all of the points are generated.
+This list can then be examined to determine  adjacencies  of  these  points  in
+order to generate line segments connecting adjacent points.
+</p><p>
+<a name="1_3"></a></p><h3><a name="1_3">1.3  Deficiencies with these Contouring Algorithms</a></h3>
+<p>
+    Both of the algorithms described in  the  <a href="#1_2">last  section</a>  perform  well  for
+contour plotting of functions whose derivatives are sufficiently small. However
+these algorithms give poor results  when  applied  to  functions  with  rapidly
+changing surface features.
+</p><p>
+</p><h4>1.3.1  Deficiencies with the Level Curve Tracing Algorithm. </h4>There  are  several
+deficiencies  with  the  level  curve  tracing algorithm.  One is the ambiguity
+associated with cells in which all four edges are intersected by the same level
+curve, as was mentioned earlier.
+<p>
+    Another is associated with edges being intersected more than  once  by  the
+same  level  curve.  Since only the function values at the endpoints of an edge
+are examined to determine if there is an intersection, the existence of an even
+number  of  intersections  between  a  level  curve  and an edge will cause the
+algorithm to act as if there were no intersections.  The algorithm  will  treat
+the existence of an odd number of intersections, as exactly one intersection. A
+somewhat related deficiency is that the actual point of intersection between  a
+level  curve and an edge can be relatively far away from the intersection point
+predicted by reverse linear interpolation.
+</p><p>
+    One more deficiency becomes a problem if the radius  of  curvature  of  the
+level curve is not large with respect to the cell size. This causes the plotted
+level curve to have noticeable corners at the points where  the  line  segments
+comprising it meet, even though the actual level curve is smooth.
+</p><p>
+</p><h4>1.3.2   Deficiencies  with  the  Recursive  Subdivision Algorithm. </h4> One  major
+deficiency  is  that  the  test involving the minimum and maximum values of the
+function evaluated at the four corners of a cell is  not  a  foolproof  way  of
+determining  whether  or  not a level curve passes through a cell. If a cell is
+incorrectly determined not to contain any portion of a level curve  this  could
+cause  the  plotted level curve to have gaps in it.  Another deficiency is that
+if the function values are only available at grid points, then this method will
+not  work  as well as the level curve tracing algorithm since only one point is
+generated per grid cell.
+<p>
+    The other deficiencies relate to implementation.  If the  function  can  be
+computed  at arbitrary points by a procedure then the procedure can get invoked
+twice for  the  same  point.  If  computing  the  function  is  computationally
+expensive then this is undesirable.
+    If line segments rather than discrete points are needed, then  storing  the
+coordinates  of  the  points and the subsequent joining up of these points with
+line segments  can  be  cumbersome  considering  the  large  number  of  points
+typically involved.
+</p><p>
+<a name="1_4"></a></p><h3><a name="1_4">1.4  Summary</a></h3>
+<p>
+    There are two basic algorithms for doing contour plotting. However each  of
+these  basic  algorithms  has  certain deficiencies that cause poor results for
+several classes  of  surface  features  which  a  function  may  exhibit.   The
+remainder of this paper will discuss several proposed improved algorithms which
+partially  cure  these  deficiencies,  including   some   discussion   of   the
+implementation of some of them.
+</p><p>
+<a name="2"></a></p><h2><a name="2">2  IMPROVING THE LEVEL CURVE TRACING ALGORITHM</a></h2>
+<p>
+    There are many ways of  trying  to  devise  an  improved  contour  plotting
+algorithm.  Due  to  the  limited  time  available to explore these approaches,
+however, only extensions of existing algorithms were explored in depth  in  the
+research  leading  to  this  paper.   Some  ideas for more novel approaches are
+presented in the <a href="#3">concluding chapter</a> of this paper.
+</p><p>
+    The general approach taken was to deal with some of the deficiencies of the
+level  curve  tracing  algorithm.  In  order  to  simplify  dealing  with these
+deficiencies, it will be assumed in this paper that the function whose  contour
+plot  is  to be constructed is available in the form of a procedure that can be
+evaluated at arbitrary coordinates. This assumption is not unreasonable,  since
+if  values  of  the  function  were  instead  only available for a fixed set of
+points, then a procedure could approximate the value of  the  function  at  any
+arbitrary point by interpolation.
+</p><p>
+<a name="figure_1"><img src="thesis_files/figure1.png"></a><br>
+     Figure 1 - Contour plot of orbital 7a<sub>1</sub> of BH<sub>3</sub>CO plotted by the level curve
+tracing algorithm as given in [<a href="#aramini_1980">Aramini 1980</a>] (80 x 48 cells)
+</p><p>
+    As a sample function that exhibits the  deficiencies  of  the  level  curve
+tracing  algorithm, the electron density function for the 7a<sub>1</sub> molecular orbital
+of the chemical compound borine carbonyl (BH<sub>3</sub>CO) was used.  For  more  detailed
+information  regarding  this function see [<a href="#ermler_et_al_1976">Ermler, et. al. 1976</a>]. <a href="#figure_1">Figure 1</a> is a
+contour plot of orbital 7a<sub>1</sub>  of  BH<sub>3</sub>CO  plotted  by  the  level  curve  tracing
+algorithm  as given in [<a href="#aramini_1980">Aramini 1980</a>], using an 80 by 48 cell grid. Some of the
+deficiencies of this contour plotting algorithm become quite  visible  in  this
+plot.  There are several cases of degenerate cells, a degenerate cell being one
+that has all four of its edges intersected by the same level curve. These  show
+up  in  <a href="#figure_1">Figure  1</a>  as  quadrilaterals, with additional line segments connecting
+diagonally opposite vertices of each quadrilateral. This  plot  also  has  also
+three steep valleys that cause a number of the cells they pass through to  have
+one or more edges that are each intersected twice by the same level curve. This
+exhibits that edges which are intersected an even number of times  by  a  given
+level  curve are treated as if they were not intersected by that level curve. A
+third difficulty demonstrated by <a href="#figure_1">Figure 1</a> is that level  curves  with  a  small
+radius  of  curvature  have  noticeable  corners  at  the points where the line
+segments approximating them meet. This is most exemplified in <a href="#figure_1">Figure 1</a>  by  the
+level curves surrounding the two largest peaks.
+</p><p>
+<a name="figure_2"><img src="thesis_files/figure2.png"></a><br>
+     Figure 2 - Enlargement of a region 10 cells wide by 6 cells high of <a href="#figure_1">Figure
+1</a> near the leftmost large peak
+</p><p>
+<a name="figure_3"><img src="thesis_files/figure3.png"></a><br>
+     Figure 3 - Enlargement of a region 10 cells wide by 6 cells high of <a href="#figure_1">Figure
+1</a> near the leftmost large peak with a grid superimposed upon it
+</p><p>
+<a name="2_1"></a></p><h3><a name="2_1">2.1  Accurately Plotting Degenerate Cells</a></h3>
+<p>
+    The simplest problem to characterize of the level curve  tracing  algorithm
+is  to  accurately  plot  degenerate cells. The algorithm presented in [<a href="#aramini_1980">Aramini
+1980</a>] will typically draw all six possible line segments that connect  each  of
+the  four  points  taken  two at a time.  Clearly this behavior is undesirable,
+since only two of the six line segments can be correct. The others are not only
+incorrect,  but  clutter  up the resulting plot making it difficult for someone
+viewing the plot to interpret the behavior of the  function  in  those  regions
+where  degenerate  cells occur. <a href="#figure_2">Figure 2</a> is an enlargement of a region 10 cells
+wide by 6 cells high of <a href="#figure_1">Figure 1</a> near the leftmost large peak. <a href="#figure_3">Figure 3</a> is  the
+same  enlargement  as  in <a href="#figure_2">Figure 2</a>, but with a grid superimposed upon it. These
+two plots demonstrate more clearly the behavior of this algorithm in degenerate
+cells.  Note  that in these Figures there are several cells that are degenerate
+for more than one level curve causing  different  level  curves  to  appear  as
+crossing  in those cells. Of course, exact level curves of a function can never
+cross as this would imply that the function had two  different  values  at  the
+point of intersection, so these apparent crossings are clearly erroneous.
+</p><p>
+</p><h4>2.1.1  Interpolation of a Function of Two Variables. </h4>There are a number of ways
+that  the  level curve tracing algorithm might be improved in order to get more
+accurate results for degenerate cells.  One idea [<a href="#fisher_1981">Fisher 1981</a>] is to model  the
+behavior  of the given function inside a cell with a simpler function, in other
+words to use interpolation. Level curves of this simpler function could then be
+determined analytically. Alternatively, an easy to evaluate test based on known
+properties of the simpler function could be devised to decide  how  to  connect
+the intersection points.
+<p>
+    A reasonable choice for the form of this simpler function is
+</p><p>
+</p><center><var>f</var>&nbsp;'(<var>x</var>,&nbsp;<var>y</var>) = <var>a</var><var>x</var><var>y</var> + <var>b</var><var>x</var> + <var>c</var><var>y</var> + <var>d</var></center>
+<p>
+where <var>a</var>, <var>b</var>, <var>c</var>, and <var>d</var> are chosen such that the values of &nbsp;<var>f</var>&nbsp;'(<var>x</var>,&nbsp;<var>y</var>) precisely match
+those of the given function at the corners of the cell.  One fortunate property
+of &nbsp;<var>f</var>&nbsp;'(<var>x</var>,&nbsp;<var>y</var>) is that for the boundaries of a cell  it  is  equivalent  to  linear
+interpolation,  thus level curves generated for each cell will properly connect
+at the boundaries between the cells.  The analytically determined level  curves
+for  &nbsp;<var>f</var>&nbsp;'(<var>x</var>,&nbsp;<var>y</var>) will be a pair of hyperbolas. Each hyperbola could be plotted as a
+sequence of line segments that approximate it. Alternatively, rather than being
+plotted,  these  hyperbolas  could  serve  as a computational model in order to
+determine how the intersection points are connected to each other in degenerate
+cells.  The  appropriate  line segments could then be drawn to properly connect
+the intersection points.
+</p><p>
+</p><h4><a name="2_1_2">2.1.2  Using an Interior Point to Decide Degenerate Cells.</a> </h4>Another approach  to
+improving  the  level  curve  tracing  algorithm  in order to get more accurate
+results for degenerate cells  is based  on  the  assumption  that  these  cells
+either  contain a saddle point at the height of the level curve or have a ridge
+or a valley running through them. If the cell contains a saddle point, then the
+intersection  points  on opposite edges should be connected with line segments.
+If a ridge or a valley runs through the  cell,  then  the  intersection  points
+should  be connected with line segments in such a way as not to cross the ridge
+or the valley.
+<p>
+    An algorithm designed by the author, based on this idea works  as  follows.
+Rather than tracing along each level curve as the original algorithm does, this
+algorithm will systematically process each cell exactly once. Doing this  makes
+the  algorithm  somewhat  simpler since a given cell is never entered more than
+once. Doing this also has the advantage that the function values for the entire
+grid need not be stored. If the scanning of cells is done across each row, then
+only two rows of function values at vertices need be stored, the row above  and
+the  row  below  the  current  row  of cells. When moving up to the next row of
+cells, the values in the array for the top row of vertices are copied into  the
+array  for  the  bottom  row of vertices, and the function is evaluated at each
+vertex in the new top row of vertices and these values are put in the array for
+the top row of vertices. A slightly more complicated algorithm could be devised
+such that only one row, plus  one  extra  element  need  be  stored.  The  only
+foreseeable  disadvantage  of  doing  one  cell at a time rather than one level
+curve at a time is that if a pen plotter is used as an output  device  the  pen
+will  draw  isolated  line  segments  rather than a connected sequence of them,
+requiring the pen to move more. This would increase the plotting time and could
+possibly reduce the quality of the plot due to mechanical error.
+</p><p>
+    For a given cell, the following  is  done  for  each  level  curve.  It  is
+determined  which  edges,  if  any, are intersected by the level curve. An edge
+will be considered intersected by a level curve if the value of the function at
+one of its endpoints is less than or equal to the height of the level curve and
+the value of the function at the other endpoint is greater than the  height  of
+its  level curve (using less than for one endpoint and greater than or equal to
+for the other one  would  work  equally  well).  Either  test  of  intersection
+guarantees  that exactly zero, two, or four edges of a cell would be considered
+intersected by a given level curve. If no edges are intersected,  then  nothing
+further  is  done  in that cell for that particular level curve. If exactly two
+edges are intersected, a line segment is drawn that connects the two points  of
+intersection.
+</p><p>
+    The  remaining  case,  when  all  four  edges  are  intersected,  is   more
+complicated to handle. The value of the function at some interior point between
+the intersection points could be used to distinguish between the three cases of
+a  saddle  point  in  the  cell or a ridge running through the cell or a valley
+running through the cell. A reasonable point to use for this is  the  point  of
+intersection  between  the  line segment connecting the top edge and the bottom
+edge intersection points with the line segment connecting the left edge and the
+right  edge intersection points.  If the value of the function at that point is
+less than, equal to, or greater than  the  height  of  the  level  curve,  this
+indicates,  respectively,  a  valley,  a  saddle point, or a ridge. If the cell
+contains a saddle point, then two line segments are drawn, one  connecting  the
+top  edge and the bottom edge intersection points, and the other connecting the
+left edge and the right edge intersection points. If a ridge or a  valley  runs
+through  the  cell, then the algorithm must determine which way it is oriented.
+One way of doing this is to make use of the value of the function at one of the
+corners  of  the cell. In the author's implementation, the top right corner was
+arbitrarily chosen for this purpose. If  the  value  of  the  function  at  the
+interior point and the top right corner are both greater than or both less than
+the height of the level curve, then the ridge or valley is  oriented  from  the
+lower  left  to  the upper right. Thus,  a line segment is drawn connecting the
+left edge and the top edge intersection points. Another line segment  is  drawn
+connecting  the  bottom edge and the right edge intersection points. If, on the
+other hand, the height of the level curve is numerically between  the  function
+value  at  the  top  right corner and the interior intersection point, then the
+ridge or the valley is oriented from the lower right to the upper left. Thus, a
+line segment is drawn connecting the left edge and the bottom edge intersection
+points. Another line segment is drawn connecting the top edge and the left edge
+intersection points.
+</p><p>
+<a name="figure_4"><img src="thesis_files/figure4.png"></a><br>
+     Figure 4 - Contour plot of orbital 7a<sub>1</sub> of BH<sub>3</sub>CO plotted  by  the  improved
+algorithm as given in <a href="#2_1_2">Section 2.1.2</a> (80 x 48 cells)
+</p><p>
+<a name="figure_5"><img src="thesis_files/figure5.png"></a><br>
+     Figure 5 - Enlargement of a region 10 cells wide by 6 cells high of <a href="#figure_4">Figure
+4</a> near the leftmost large peak (same region as in <a href="#figure_2">Figure 2</a>)
+</p><p>
+    In <a href="#appendix_a">Appendix A</a> is the essential part of a program written in  FORTRAN  which
+implements  this algorithm.  <a href="#figure_4">Figure 4</a> is a contour plot of orbital 7a<sub>1</sub> of BH<sub>3</sub>CO
+plotted by this improved algorithm. The heights of the  level  curves  and  the
+fineness  of  the  grid are identical to those used in <a href="#figure_1">Figure 1</a>. <a href="#figure_5">Figure 5</a> is an
+enlargement of a region 10 cells wide by 6 cells high  of  <a href="#figure_4">Figure  4</a>  near  the
+leftmost  large  peak. This is the same region that was used in <a href="#figure_2">Figure 2</a>. While
+many of the other problems are still present  in  these  plots,  the  erroneous
+quadrilaterals  have gone away. Also there are no longer any apparent crossings
+of the level curves.
+</p><p>
+<a name="2_2"></a></p><h3><a name="2_2">2.2  Variable Cell Size Contour Plotting Algorithms</a></h3>
+<p>
+</p><h4>2.2.1  Effects of Cell Size. </h4>Decreasing the cell size  of  the  grid  tends  to
+improve  the  quality of the contour plot for a number of reasons. Since values
+of the  function  are  known  at  points  which  are  closer  together,  linear
+interpolation  will give more accurate results for a smaller cell size than for
+a larger one. Also, for a smaller cell size, the line segments  comprising  the
+approximated level curves will be shorter than for a larger cell size, thus the
+approximated level curves will appear smoother. Another reason is that a  level
+curve  which  intersects  the  same edge of a grid with a larger cell size more
+than once will, with a smaller cell size,  be  less  likely  to  have  multiple
+crossings of a given edge.
+<p>
+</p><h4>2.2.2  Smaller Fixed Cell Size. </h4>One could argue that the apparent  deficiencies
+of  the  level  curve  tracing  algorithm  are  actually  a  result of using an
+insufficiently fine grid. However, using a sufficiently fine grid to acceptably
+plot  even  the  most troublesome of the features of the function in the region
+being contoured can be rather wasteful of computing time as this grid  will  be
+unnecessarily fine for most of the region, where such features do not occur.
+<p>
+<a name="figure_6"><img src="thesis_files/figure6.png"></a><br>
+     Figure 6 - Contour plot of orbital 7a<sub>1</sub> of BH<sub>3</sub>CO plotted  by  the  improved
+algorithm as given in <a href="#2_1_2">Section 2.1.2</a> (640 x 384 cells)
+</p><p>
+    In order to determine how fine a grid is  needed  to  acceptably  plot  the
+electron  density  function  used  in the previous illustrations, a sequence of
+contour plots were made using the improved  algorithm  of  <a href="#2_1_2">Section  2.1.2</a>.  The
+initial  plot  of  this  sequence  was  <a href="#figure_4">Figure  4</a>.  Each  successive  plot  was
+constructed by the improved algorithm using a grid with  twice  the  number  of
+rows and twice the number of columns as the previous plot in the sequence. This
+sequence was continued until a plot was produced that no longer  exhibited  any
+of  the  known deficiencies of the algorithm, which occurred when the grid used
+had 8 times as many rows and 8 times as  many  columns  as  the  grid  used  to
+produce  <a href="#figure_4">Figure  4</a>.  This latest plot of the sequence is shown in <a href="#figure_6">Figure 6</a>, and
+uses a 640 by 384 cell grid.  Since there  are  64  times  as  many  cells  and
+approximately 64 times as many function evaluations needed to produce this plot
+compared to producing the plot in <a href="#figure_4">Figure 4</a>, it is expected that  the  execution
+time  needed  would be 64 times as great. When these two plots were produced by
+executing a program implementing the algorithm of <a href="#2_1_2">Section 2.1.2</a> on a Prime  650
+computer,  the  run-time  required  to  produce  <a href="#figure_4">Figure  4</a>, while not precisely
+measured, seemed to be under one minute, while approximately one half  hour  of
+run-time  was  needed  to produce <a href="#figure_6">Figure 6</a>. Thus, empirically, this ratio of 64
+seems correct to within an order of magnitude.
+</p><p>
+<a name="figure_7"><img src="thesis_files/figure7.png"></a><br>
+     Figure 7 - Enlargement of a region 80 cells  wide  by  48  cells  high  of
+<a href="#figure_6">Figure 6</a> near the leftmost large peak (same region as in <a href="#figure_5">Figure 5</a>)
+</p><p>
+    <a href="#figure_7">Figure 7</a> is an enlargement of a region 80 cells wide by 48  cells  high  of
+<a href="#figure_6">Figure 6</a> near the leftmost large peak. This enlargement more clearly shows that
+all of the known deficiencies were eliminated by using such a fine  grid.  Note
+that <a href="#figure_7">Figure 7</a> depicts the same region as does <a href="#figure_5">Figure 5</a>.
+</p><p>
+</p><h4>2.2.3  Variable Cell Size. </h4>Clearly one way to avoid  excessive  run-time  while
+still  allowing  use  of  sufficiently  small cells in troublesome areas of the
+plot, is to allow different grid sizes to be used in various areas of the plot.
+One  way  to  implement a variable cell size is to allow the user to optionally
+specify a subgrid to use within each cell of the main grid. Thus if it is known
+in  advance  that  certain  regions will be troublesome, then these regions can
+handled in finer detail than the rest of the plot. Also the user could run  the
+program several times, adjusting the parameters specifying the sub-grids, until
+satisfactory results are obtained. In some cases the fineness of  the  grid  in
+various  areas of the plot is so variable that the user might want to specify a
+sub-grid within cells of a sub-grid. In general, the user might  need  to  nest
+sub-grids within cells of sub-grids to an arbitrary depth.
+<p>
+    The simplest way of implementing this is to have a recursively defined data
+structure  that  allows  a  description  of  a grid giving its dimensions and a
+description of a sub-grid for each  cell  which  is  to  be  subdivided  and  a
+procedure  which  is  applied  to  this recursive data structure. The procedure
+processes each cell of a grid one at a time. For cells  which  are  not  to  be
+subdivided,  the procedure plots line segments in the same way as the algorithm
+in <a href="#2_1_2">Section 2.1.2</a>. For cells which  are  to  be  subdivided,  the  procedure  is
+recursively  applied  to  the  sub-grid.  The  author  has  implemented  such a
+procedure, and two difficulties with it have been detected. One  difficulty  is
+that  it  is  very tedious for the user to specify the data needed for building
+the  necessary  instantiation  of  the  recursive  data  structure.  The  other
+difficulty  is  that  the  line  segments  approximating  a level curve did not
+connect across the boundary between two cells that  where  not  subdivided  the
+same way. This latter problem is due to the fact that in order to determine the
+points of intersection with a level curve  and  the  boundary,  reverse  linear
+interpolation  was  done  using  different data points on opposite sides of the
+boundary.
+</p><p>
+<a name="2_3"></a></p><h3><a name="2_3">2.3  Adaptive Contour Plotting Algorithms</a></h3>
+<p>
+    In this paper, a contour plotting algorithm that automatically adjusts grid
+fineness  in  response  to the behavior of the function being contoured will be
+referred to as an adaptive contour plotting algorithm.  For an algorithm to  be
+adaptive,  it  must  have  some criterion for determining what grid fineness to
+use. In the research leading to this paper, many  possible  criteria  for  this
+were investigated.
+</p><p>
+</p><h4>2.3.1  Possible Adaption Criteria. </h4>The first criterion considered was comparing
+the  magnitude  of  the  numerically approximated gradient of the function with
+some constant that was either user specified or empirically determined. If  the
+magnitude of the gradient at a given point was greater than this constant, then
+a finer grid size could be used in the  area  around  it.  This  criterion  was
+motivated  by  the  fact that the gradient is rather large on the slopes of the
+steep valleys and sharp peaks.  In general, however, the large gradient  itself
+is  not  an indication of a troublesome area, since the gradient could be large
+in areas where the surface represented by the function is rather smooth. On the
+other  hand,  troublesome  areas  could  have  a small numerically approximated
+gradient.  This is because the numerical approximation of the gradient actually
+is  the  average  value  of the gradient over a region of several cells and the
+troublesome feature might fall completely within this area.
+<p>
+    What would seem to be a more appropriate measure to use is  the  divergence
+of  the  gradient of the function, otherwise known as the Laplacian.  Since the
+Laplacian is a scalar, in this  case  the  absolute  value  could  be  compared
+against  a  constant. The Laplacian can be approximated discretely at the point
+(<var>x</var>,&nbsp;<var>y</var>) using the following formula:
+</p><p>
+</p><center><table>
+  <tbody><tr>
+    <td nowrap="nowrap"><center>&nbsp;<var>f</var>(<var>x</var>+&#916;<var>x</var>,&nbsp;<var>y</var>) + <var>f</var>(<var>x</var>-&#916;<var>x</var>,&nbsp;<var>y</var>) - 2<var>f</var>(<var>x</var>,&nbsp;<var>y</var>)</center>
+               <hr noshade="noshade">
+               <center>(&#916;<var>x</var>)<sup>2</sup></center>
+    </td>
+    <td>&nbsp;<br>
+        &nbsp;+&nbsp;<br>
+        &nbsp;<sup>&nbsp;</sup>
+    </td>
+    <td nowrap="nowrap"><center>&nbsp;<var>f</var>(<var>x</var>,&nbsp;<var>y</var>+&#916;<var>y</var>) + <var>f</var>(<var>x</var>,&nbsp;<var>y</var>-&#916;<var>y</var>) - 2<var>f</var>(<var>x</var>,&nbsp;<var>y</var>)</center>
+               <hr noshade="noshade">
+               <center>(&#916;<var>y</var>)<sup>2</sup></center>
+    </td>
+  </tr>
+</tbody></table></center>
+<p>
+where &#916;<var>x</var> and &#916;<var>y</var> are, respectively, the <var>x</var> and  <var>y</var>  dimensions  of  a  grid  cell.
+Thus,  the  Laplacian  is inexpensive to compute at a grid point, since it only
+uses values of the function at grid points, which must be evaluated anyway.
+</p><p>
+    The Laplacian criterion has some difficulties. It will  not  detect  saddle
+points  too  well,  since  at saddle points the <var>x</var> directional and <var>y</var> directional
+contributions to the Laplacian are of opposite  sign.   Also  determining  what
+value  to use for the constant of comparison is rather difficult. What might be
+a reasonable value to use for one part of the plot might not be  reasonable  in
+another  part of the plot.  If the constant is too large, then some troublesome
+areas of the plot will not be detected. If the constant is too small, then much
+more of the plot will be done at a finer grid size than is necessary.
+</p><p>
+    Two other indicators of troublesome areas use the value of the function  at
+the  center  of  the  cell.   One possible test is that if the central function
+value is less than the minimum of or greater than the  maximum  of  the  vertex
+function  values, then the cell is considered troublesome.  The other test is a
+variation of this, namely if the central function value is less that the second
+smallest  of, or greater than the second largest of the vertex function values,
+then the cell would be considered troublesome.
+</p><p>
+    Several other criteria investigated are not based solely on the  properties
+of  the  function,  but also involve the particular level curves to be plotted.
+One such test was applied for each cell of the grid to each  level  curve  that
+goes  through  that cell. The line segment that approximates a particular level
+curve in a cell is computed as in the improved  algorithm  of  <a href="#2_1_2">Section 2.1.2</a>.
+The  function  is  then  evaluated  at  the midpoint of this line segment.  The
+difference between the computed value of the function at  that  point  and  the
+height  of  the  level  curve  is  a  raw  measure of how well the line segment
+approximates the level curve.   A  normalized,  and  perhaps  more  meaningful,
+measure  to  use  is the ratio of this difference to the difference between the
+maximum and the minimum of the values of the function at the  vertices  of  the
+cell.   If the absolute value of this ratio is greater than some constant, then
+that cell will be  considered  troublesome.   Unfortunately,  determining  what
+constant  to  use  is  non-trivial,  as  for  other  criteria that involve some
+empirically determined constant.
+</p><p>
+    Another such test was applied for each edge of the grid on each level curve
+that  intersects  that  edge.  The intersection point between that edge and the
+particular level curve is obtained by reverse interpolation.  The  function  is
+then  evaluated  at the intersection point. The difference between the computed
+value of the function at the approximated intersection point and the height  of
+the  level  curve gives a raw measure of how well linear interpolation fits the
+function at that edge. A normalized measure would be  the  ratio  of  this  raw
+measure with the difference between the function values at the endpoints of the
+edge. If the absolute value of this ratio for any level curve crossing a  given
+edge  is  greater  than some constant, then the two cells adjacent to that edge
+would be considered troublesome.  A similar test [<a href="#watanabe_1981">Watanabe 1981</a>]  is  to  first
+determine  the  intersection  point by interpolation, and then evaluate at that
+point, as above. Next, a second order approximation of the level curve is  made
+by  reverse  interpolation  between  the  first order point and the appropriate
+endpoint. The distance between the first and second order points is used  as  a
+measure  of  goodness  of  fit  of  linear  interpolation. Another, normalized,
+measure is the ratio of this distance to the length  of  the  edge.   Comparing
+either  of  these  measures  against a constant serves as a useful criterion of
+troublesomeness. Using simply the distance measure gives an idea of the  amount
+of  mismatch  between  the  line  segments  comprising  the same level curve on
+opposite side of the particular edge in the event that the  size  of  cells  on
+opposite  side of the edge were different. The normalized measure is better for
+determining how well linear interpolation  fits  the  function  on  a  relative
+scale.   This  particular  normalized  measure  is  nicer to deal with than the
+previous normalized measure because its value is between zero  and  one,  while
+the previous one could be unboundedly large.
+</p><p>
+</p><h4>2.3.2  Programs Based on These Tests. </h4>The previous two  tests  and  the  center
+point function value test showed the most promise of giving reasonable results,
+so programs based of each of these tests, and various combinations of them were
+implemented by the author.  In each program, if the test failed in a particular
+cell, then the cell would be subdivided into four sub-cells and this same  test
+is  recursively applied to each of the sub-cells. To prevent infinite recursion
+which might happen in certain cases, and  also  to  prevent  the  program  from
+dealing with cells that are smaller than the resolution of the plotting device,
+the subdivision is not performed if the cell is smaller than  a  certain  size.
+When  a  cell  in  not subdivided, line segments approximating level curves are
+drawn in that cell in the same manner as for the  algorithm  given  in  Section
+2.1.2.
+<p>
+    There were six such programs written. Table 1  summarizes  the  results  of
+these  programs  when applied to the electron density plot of orbital 7a<sub>1</sub>. This
+table gives the number of function evaluations performed and the number of line
+segments  drawn  for  each  program, and, where applicable, for each of several
+values of the constant used in the second order interpolation test.  There  was
+one  program  which  was  based  on  the  central function value criterion, and
+another on the normalized  second  order  interpolation  test.  The  first  one
+performed  well in the vertical valley near the right side of the plot, but the
+other  two  curved  valleys  gave  rather  messy  results  due  to  the  sudden
+transitions  between  cell  sizes,  causing  level curves not to connect up too
+well. The other program, on the other hand, performed well everywhere except in
+the  vertical  valley.  Since each of these tests handles different troublesome
+situations, a combination of the two tests was tried, that is  if  either  test
+failed,  then  the cell would be subdivided. This seemed to work, but drove the
+number of function evaluations, and thus the  run  time,  way  up.   Next,  the
+central  function  value test was instead combined with the unnormalized second
+order interpolation test, but this produced identical results to  the  previous
+combined  test.  Then  for  the sake of completeness, the unnormalized test was
+tried by itself.
+</p><p>
+<table border="" cellpadding="5">
+  <caption align="bottom">
+    Table 1 - Behavior of several trouble indicator based programs
+  </caption><tbody><tr>
+    <td align="center">test used</td>
+    <td>const.</td>
+    <td>funct. evals.</td>
+    <td>line segs.</td>
+    <td>comments</td>
+  </tr>
+  <tr>
+    <td rowspan="3">normalized<br>
+                  2nd order<br>
+                  interpolation</td>
+    <td align="center">1.00</td>
+    <td align="right">8,871</td>
+    <td align="center">2,440</td>
+    <td>line mismatch</td>
+  </tr>
+  <tr>
+    <td align="center">0.10</td>
+    <td align="right">13,107</td>
+    <td align="center">3,622</td>
+    <td>bad vert. valley</td>
+  </tr>
+  <tr>
+    <td align="center">0.05</td>
+    <td align="right">13,506</td>
+    <td align="center">3,701</td>
+    <td>bad vert. valley</td>
+  </tr>
+  <tr>
+    <td>central value</td>
+    <td align="center">--</td>
+    <td align="right">25,345</td>
+    <td align="center">3,276</td>
+    <td>curve mismatch</td>
+  </tr>
+  <tr>
+    <td rowspan="2">both norm. int.<br>
+                  central value</td>
+    <td align="center">0.10</td>
+    <td align="right">36,715</td>
+    <td align="center">4,187</td>
+    <td>good</td>
+  </tr>
+  <tr>
+    <td align="center">0.05</td>
+    <td align="right">37,221</td>
+    <td align="center">4,620</td>
+    <td>good</td>
+  </tr>
+  <tr>
+    <td>both unnorm.<br>
+        int. &amp; central</td>
+    <td align="center">--</td>
+    <td align="right">37,221</td>
+    <td align="center">4,260</td>
+    <td>good</td>
+  </tr>
+  <tr>
+    <td>unnorm. int.</td>
+    <td align="center">--</td>
+    <td align="right">13,506</td>
+    <td align="center">3,701</td>
+    <td>bad vert. valley</td>
+  </tr>
+</tbody></table>
+</p><p>
+</p><h4><a name="2_3_3">2.3.3  Line Segment Matching Improved Algorithm.</a> </h4>The central function criterion
+appears  to  work best if, by some method, the line segments comprising a level
+curve on opposite sides of a boundary between regions of  different  cell  size
+can  be  connected properly.  Such a method has been devised and implemented by
+the author.  This method requires that the algorithm work in  two  passes.   In
+the  first pass each cell in an initial grid is scanned one cell at a time. For
+each cell there is a data structure capable of storing  a  tree  with  interior
+nodes  of  out-degree of no more than four, and the leaves of the tree refer to
+elements of a two-dimensional array. The  structure  of  the  tree  models  the
+nesting  of subdivisions. Each element of the two-dimensional array corresponds
+to a grid vertex in the grid that corresponds to the smallest permissible  cell
+size  that  has  been  imposed,  typically the pixel size of the output device.
+Each element contains the value of that function at that point, once that point
+has  been  referred to in a function evaluation. Each element also contains the
+width and height of the subcell to the top right, the width of the cell in  the
+bottom  right, and the height of the cell to the top left of that vertex. Since
+the depth of subdivision  will  vary,  this  array  can  be  quite  sparse,  so
+techniques for storing large but sparse arrays efficiently should be used.
+<p>
+    On the second pass adjacencies of cells can be easily determined using  the
+tree  and  the  array  elements specifying cell lengths.  If, when processing a
+given cell on the second pass, it has neighboring cells which are smaller,  the
+algorithm  will  use  intersection  points as produced by the neighboring cells
+which are smaller for those edges between the  current  cell  and  the  smaller
+cell,  rather  than  using intersection points as generated by the current cell
+alone. It will be considered that in the smaller cells the intersection  points
+will  be  known more accurately, and if the larger cells use the smaller cells'
+intersection points, then the level curves will be drawn continuously.
+</p><p>
+<a name="figure_8"><img src="thesis_files/figure8.png"></a><br>
+     Figure 8 - Contour plot of orbital 7a<sub>1</sub> as plotted  line  segment  matching
+improved algorithm by this program
+</p><p>
+<a name="figure_9"><img src="thesis_files/figure9.png"></a><br>
+     Figure 9 -  Plot  showing  the  arbitrarily  nested  grid  that  was  used
+internally to the program when generating <a href="#figure_8">Figure 8</a>
+</p><p>
+    <a href="#appendix_b">Appendix B</a> contains a program written in C which implements this algorithm.
+<a href="#figure_8">Figure 8</a> is a contour plot of orbital 7a<sub>1</sub> as plotted by this program.  <a href="#figure_9">Figure 9</a>
+is a plot showing the arbitrarily nested grid that was used internally  to  the
+program  when  generating  <a href="#figure_8">Figure  8</a>.   Note that in this program, an efficient
+sparse array was not used in order to simplify this experimental  version,  but
+advantage  was  taken of the rather large virtual memory available on the PR1ME
+650  on  which  this  program  was  developed.  From  statistics  taken,   only
+approximately  eight  per-cent  of  the  array  is  actually ever used for this
+particular function, so more efficient sparse array techniques  are  worthwhile
+to  use  in  this  case.  This particular program gives better results than the
+algorithm of <a href="#2_1_2">Section 2.1.2</a>, but still leaves some things to  be  desired.   The
+run-time  to  produce <a href="#figure_8">Figure 8</a> was approximately four minutes, making this much
+better  than  the  30  minute  run-time  for  producing  the  high  resolution,
+traditional algorithm contour plot.
+</p><p>
+<a name="3"></a></p><h2><a name="3">3  CONCLUSION</a></h2>
+<p>
+    There are many software packages available for constructing a contour  plot
+of   a  function.   These  packages  produce  good  results  when  the  surface
+represented by a function is reasonably smooth.  For functions which have sharp
+surface  features,  however, the software packages, and the algorithms they are
+based on have deficiencies which cause rather poor results in the areas of  the
+plot near these surface features.
+</p><p>
+    There are two major approaches that can be taken in order to try to  devise
+a  contour  plotting  algorithm  that  works well even in regions which contain
+sharp surface features.  One approach is to devise  a  fundamentally  different
+algorithm  that  avoids  the  pitfalls of the traditional algorithms. The other
+approach is to enhance one of  the  traditional  algorithms.  This  enhancement
+could  be  in  the  form  of  a  means  of  detecting  situations  in which the
+traditional algorithm is known to behave poorly and to handle these  situations
+as  special  cases.  The former approach might, in the long run, yield a better
+solution, but the more conservative latter  approach  was  taken,  due  to  the
+limited amount of time available for the research leading to this paper.
+</p><p>
+    Following the enhancement approach, several improvements have been made  to
+the   level  curve  tracing  algorithm.  The  first,  and  simplest,  of  these
+improvements has been to reasonably solve  the  problem  of  degenerate  cells.
+Other  improvements were based on detecting in which grid cells the function is
+very non-monotonic, and then subdividing those cells recursively.  Due to  this
+recursive  subdivision, cells of many different sizes could be used in the same
+contour plot. This created  the  difficulty  that  level  curves  would  appear
+discontinuous  when  crossing  the boundary between cells of different sizes. A
+further improvement was to store information about all of the cells before  any
+plotting is actually done, and then to construct the level curves in a way that
+would be consistent in neighboring cells of different size. This  insures  that
+the  level  curves  are  drawn  continuously.   Unfortunately,  the most recent
+implementation of this algorithm is very  space  inefficient,  so  it  will  be
+usable  only  on  a computer with a large per job address space only if a space
+efficient sparse array store scheme is used.
+</p><p>
+<a name="3_1"></a></p><h3><a name="3_1">3.1  Possible Further Research</a></h3>
+<p>
+    More work could still be done with the enhancement approach.  For  example,
+better tests to determine what regions are troublesome could be devised.  Also,
+perhaps a scheme for matching up level curves across cell boundaries  might  be
+obtained that does not require the large array of cell information, which, even
+if stored efficiently, uses a large amount of memory.
+</p><p>
+    The approach of devising a fundamentally new  contour  plotting  algorithm,
+however,  seems to hold more promise of completely avoiding the deficiencies of
+the level curve tracing algorithm and the recursive subdivision algorithm.  One
+idea for such an algorithm avoids the usage of a grid altogether, and thus also
+avoids the difficulties associated with using a grid.  For each level curve, or
+branch  thereof,  the  algorithm starts with the current point being a starting
+point on the particular curve.  The function  could  be  evaluated  at  several
+points  in  a  circular  arc around the current point in order to determine the
+direction in which the level curve is heading. Then a line segment is drawn  in
+that  direction  from  the  current point to a point this circular arc, and the
+current point becomes the other endpoint of this line segment.  From  this  new
+point the process of scanning around to find the next line segment is repeated.
+This process of of tracing out the level curve continues  until  the  algorithm
+comes  back to the starting point or until the edge of the region being plotted
+is reached. The radius of the circular arc, and other things concerning how the
+next  point  is scanned for could be modified dynamically based on the behavior
+of the level curve so far and also from the values  of  the  function  obtained
+while  scanning.  Of course, this is just a rather general idea, but developing
+a specific algorithm seems to deserve further investigation.
+</p><hr>
+<center><h2>REFERENCES</h2></center>
+<p>
+</p><dl>
+  <dt><a name="aramini_1980">[Aramini 1980]</a>
+  </dt><dd><a href="http://mysite.verizon.net/%7Evze2vrva/">Aramini, M.  J.</a>,  <cite>The  Design  and  Implementation  of  Computer
+          Algorithms  for  Contour  Plotting</cite>  (undergraduate  thesis),  <a href="http://www.stevens.edu/">Stevens
+          Institute of Technology</a>, Hoboken, NJ 07030, (May 2, 1980).
+<p>
+  </p></dd><dt><a name="bruss_1977">[Bruss 1977]</a>
+  </dt><dd>Bruss, A. R., "<a href="http://dspace.mit.edu/bitstream/handle/1721.1/41980/AI_WP_146.pdf">Extracting Topographic Features From Elevation Data
+          Using  Contour  Lines</a>",  Working  Paper  146, <a href="http://www.ai.mit.edu/">Artificial Intelligence
+          Laboratory</a>, <a href="http://web.mit.edu/">Massachusetts  Institute  of  Technology</a>,  Cambridge,  MA
+          02139, (May 1977).
+<p>
+  </p></dd><dt><a name="cottafava_le_moli_1969">[Cottafava &amp; Le Moli 1969]</a>
+  </dt><dd>Cottafava, G. and G.  Le  Moli,  "<a href="http://doi.acm.org/10.1145/363156.363172">Automatic  Contour
+          Plotting</a>", <cite><a href="http://www.acm.org/cacm/">Comm. ACM</a> 12</cite>, 7 (July 1969), pp. 386-391.
+<p>
+  </p></dd><dt><a name="ermler_et_al_1976">[Ermler, et. al. 1976]</a>
+  </dt><dd><a href="http://www.utsa.edu/chem/ermler.html">Ermler, W. C.</a>, F. D. Glasser, and C.  W.  Kern,  "<a href="http://pubs.acs.org/doi/pdf/10.1021/ja00429a011">Borine
+          Carbonyl.   Bonding   and   Properties   in   the  Single-Determinant
+          Approximation</a>", <cite><a href="http://pubs.acs.org/journals/jacsat/index.html">J. Amer. Chem. Soc.</a> 98</cite>, 3799 (1976), pp. 3799-3807.
+<p>
+  </p></dd><dt><a name="fisher_1981">[Fisher 1981]</a>
+  </dt><dd>Fisher, D., personal communication, (Mar. 1981).
+<p>
+  </p></dd><dt><a name="grz">[GRZ]</a>
+  </dt><dd><cite>GRZ Graphics Software User's  Manual</cite>,  <a href="http://www.bell-labs.com/">Bell  Telephone  Laboratories</a>,
+          Murray Hill, NJ 07974.
+<p>
+  </p></dd><dt>[Heckman &amp; Meyer 1980]
+  </dt><dd>Heckman, A. and Lynn Meyer, <cite>NICEPLOT Manual</cite> (Version 2),
+          Materials   Research  Laboratory  Computer  Facility,  <a href="http://www.uiuc.edu/">University  of
+          Illinois</a>, Urbana, IL 61801 (April 1980).
+<p>
+  </p></dd><dt><a name="karney_1977">[Karney  1977]</a>
+  </dt><dd><a href="http://charles.karney.info/">Karney,  C.  F.  F.</a>,  "<a href="http://mysite.verizon.net/%7Evze2vrva/PLOT2_USAGE.txt">MC:   SHARE;   PLOT2   USAGE</a>"   (on-line
+          documentation),   <a href="http://www.lcs.mit.edu/">Laboratory   for  Computer  Science</a>,  <a href="http://web.mit.edu/">Massachusetts
+          Institute of Technology</a>, Cambridge, MA 02139, (1977).
+<p>
+  </p></dd><dt><a name="wright_1975">[Wright 1975]</a>
+  </dt><dd>Wright,  T.,  "CONREC"  (subroutine),  <cite>NCAR  Graphics  Software</cite>,
+          <a href="http://www.ncar.ucar.edu/">National  Center  for Atmospheric Research</a>, Boulder, CO 80302, (Aug.,
+          1975).
+<p>
+  </p></dd><dt><a name="yates_1978">[Yates 1978]</a>
+  </dt><dd>Yates, J. H., "Gaussian  74"  (computer  program),  <a href="http://www.chem.stevens.edu/">Department  of
+          Chemistry  and Chemical Engineering</a>, <a href="http://www.stevens.edu/">Stevens Institute of Technology</a>,
+          Hoboken, NJ 07030, (Oct. 1978).
+<p>
+  </p></dd><dt><a name="watanabe_1981">[Watanabe 1981]</a>
+  </dt><dd>Watanabe, D. S., personal communication, (June 1981).
+</dd></dl>
+<hr>
+<center><a name="appendix_a"><h2>APPENDIX A</h2></a></center>
+<p>
+    The following is a program written in FORTRAN by the author that implements
+the improved contour plotting algorithm given in <a href="#2_1_2">Section 2.1.2</a>.
+</p><p>
+</p><pre>C * CONTOUR PLOTTING SUBROUTINE WRITTEN BY MICHAEL J. ARAMINI
+C * THIS VERSION USES INTERIOR POINT TO DECIDE 4 EDGE CELLS
+C * THIS VERSION WILL CONDITIONALLY PRINT A GRID
+      SUBROUTINE CNTR(NUMX,NUMY,XMIN,XMAX,YMIN,YMAX,VAL,
+     #  NVALS,NCHARS,TITLE,GRIDP)
+      LOGICAL GRIDP
+      DIMENSION VAL(NVALS),TITLE(1)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      LOGICAL DEBUG
+C * INITIALIZE PLOTTER, SET UP WINDOW, ETC.
+      CALL INIT
+      CALL DEVON
+      CALL BOUNDS(DEF(1),DEF(2),DEF(3),DEF(4))
+      CALL WBOUND(X1,X2,Y1,Y2)
+C * FIGURE OUT IF X OR Y LIMITS THE WINDOW (ALLOW LOWER BORDER OF
+C * 1/8 OF PLOT HEIGHT FOR TITLE)
+      BSLOPE=(Y2-Y1)/(X2-X1)
+      IF (1.125*(YMAX-YMIN)/(XMAX-XMIN).LT.BSLOPE) GOTO 999
+C * Y IS LIMITING DIMENSION
+      YYMAX=YMAX
+      XXMAX=1.125*(YMAX-YMIN)/BSLOPE+XMIN
+      GOTO 990
+C * X IS LIMITING DIMENSION
+999   XXMAX=XMAX
+      YYMAX=(XMAX-XMIN)*BSLOPE+YMIN-0.125*(YMAX-YMIN)
+990   CALL SETLIM(XMIN,XXMAX,YMIN-0.125*(YMAX-YMIN),YYMAX,
+     $    .FALSE.)
+C * PLOT TITLE
+      IF (NCHARS.LE.0) GOTO 34
+      CHARS=NCHARS
+      HEIGHT=(XMAX-XMIN)/CHARS
+      X0=0.0
+      IF (HEIGHT.LE.0.0625*(YMAX-YMIN)) GOTO 37
+      HEIGHT=0.0625*(YMAX-YMIN)
+      X0=0.5*(XMAX-XMIN-HEIGHT*CHARS)+XMIN
+   37 CALL STRING(X0,1.0625*YMIN-0.0625*YMAX-0.5*HEIGHT,
+     $    100.0*HEIGHT/(YYMAX-YMIN+0.125*(YMAX-YMIN)),0.0,
+     $    TITLE,0.0)
+C * SET UP SOME GLOBAL VARIABLES
+   34 XLOW=XMIN
+      YLOW=YMIN
+      DELX=(XMAX-XMIN)/(NUMX-1)
+      DELY=(YMAX-YMIN)/(NUMY-1)
+C * CONDITIONALLY DRAW GRID
+      IF (.NOT.GRIDP) GOTO 52
+      DO 50 I=1,NUMX
+50    CALL DRAW(XX(I),YY(1),XX(I),YY(NUMY))
+      DO 51 J=1,NUMY
+51    CALL DRAW(XX(1),YY(J),XX(NUMX),YY(J))
+52    CONTINUE
+C * SET UP OLD VALUES
+      DO 21 I=1,NUMX
+   21   FOLD(I)=FUNCT(XX(I),YY(1))
+C * LOOP FOR Y DIRECTION
+      DO 22 J=2,NUMY
+        FNEW(1)=FUNCT(XX(1),YY(J))
+C *   LOOP FOR X DIRECTION
+        DO 24 I=2,NUMX
+          FNEW(I)=FUNCT(XX(I),YY(J))
+C *     LOOP FOR CONTOUR VALUES TO BE PLOTTED
+          DO 23 K=1,NVALS
+C *      EXTRACT THE CURRENT VALUE
+            V=VAL(K)
+C *        COMPUTE THE MAGIC NUMBER (INDICATING THE KIND OF CELL)
+            L=0
+            IF (FOLD(I).GE.V) L=L+1
+            IF (FOLD(I-1).GE.V) L=L+2
+            IF (FNEW(I).GE.V) L=L+4
+            IF (FNEW(I-1).GE.V) L=L+8
+C *        PSEUDO-CASE STATEMENT TO DO APPROPRIATE ACTION FOR CELL
+            GOTO (23,1,2,3,4,5,6,7,8,9,10,11,12,13,14,23),L+1
+    7      CONTINUE
+    8       CALL DRAW(XX(I-1),ALEFT(I,J),TOP(I),YY(J))
+             GOTO 23
+    5      CONTINUE
+   10       CALL DRAW(BOT(I),YY(J-1),TOP(I),YY(J))
+             GOTO 23
+    2      CONTINUE
+   13       CALL DRAW(XX(I-1),ALEFT(I,J),BOT(I),YY(J-1))
+             GOTO 23
+    4      CONTINUE
+   11       CALL DRAW(TOP(I),YY(J),XX(I),RIGHT(I,J))
+             GOTO 23
+    3      CONTINUE
+   12       CALL DRAW(XX(I-1),ALEFT(I,J),XX(I),RIGHT(I,J))
+             GOTO 23
+    1      CONTINUE
+   14       CALL DRAW(BOT(I),YY(J-1),XX(I),RIGHT(I,J))
+             GOTO 23
+C *       HANDLE 4 EDGE CELLS
+    6      CONTINUE
+    9       X0=AINTER(FOLD(I-1),FOLD(I))
+            X1=AINTER(FNEW(I-1),FNEW(I))
+            Y0=AINTER(FOLD(I-1),FNEW(I-1))
+            Y1=AINTER(FOLD(I),FNEW(I))
+C *        COMPUTE COORDINATES FOR INTERSECTION POINT
+            Y=(X0*(Y1-Y0)+Y0)/(1.0-(X1-X0)*(Y1-Y0))
+            X=Y*(X1-X0)+X0
+C *        COMPUTE FUNCTION VALUE FOR INTERSECTION POINT
+            F=FUNCT(XX(I-1)+DELX*X,YY(J-1)+DELY*Y)
+C *        FIGURE OUT WHAT ACTION TO TAKE
+            IF (F.EQ.V) GOTO 31
+            IF (((F.GT.V).AND.(FNEW(I).GE.V)).OR.
+     $        ((F.LT.V).AND.(FNEW(I).LT.V))) GOTO 32
+   30      CALL DRAW(XX(I-1),ALEFT(I,J),BOT(I),YY(J-1))
+            CALL DRAW(TOP(I),YY(J),XX(I),RIGHT(I,J))
+             GOTO 23
+   31      CALL DRAW(BOT(I),YY(J-1),TOP(I),YY(J))
+            CALL DRAW(XX(I-1),ALEFT(I,J),XX(I),RIGHT(I,J))
+             GOTO 23
+   32      CALL DRAW(XX(I-1),ALEFT(I,J),TOP(I),YY(J))
+            CALL DRAW(BOT(I),YY(J-1),XX(I),RIGHT(I,J))
+   23     CONTINUE
+   24   CONTINUE
+C * PUSH BACK NEW VALUES TO OLD VALUES
+        DO 25 I=1,NUMX
+   25     FOLD(I)=FNEW(I)
+   22 CONTINUE
+C * TERMINATE THE PLOT
+      CALL DEVOFF
+      CALL WAIT
+      RETURN
+      END
+C
+C
+C * ROUTINE TO COMPUTE X COORDINATE CORRESPONDING TO COLUMN I
+      FUNCTION XX(I)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      XX=XLOW+DELX*(I-1)
+      RETURN
+      END
+C
+C
+C * ROUTINE TO COMPUTE Y COORDINATE CORRESPONDING TO ROW J
+      FUNCTION YY(J)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      YY=YLOW+DELY*(J-1)
+      RETURN
+      END
+C
+C
+C * ROUTINE TO COMPUTE THE INTERSECTION COORDINATE AT TOP OF CELL
+      FUNCTION TOP(I)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      TOP=DELX*((I-2)+AINTER(FNEW(I-1),FNEW(I)))+XLOW
+      RETURN
+      END
+C
+C
+C * ROUTINE TO COMPUTE THE INTERSECTION COORDINATE AT BOTTOM OF CELL
+      FUNCTION BOT(I)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      BOT=DELX*((I-2)+AINTER(FOLD(I-1),FOLD(I)))+XLOW
+      RETURN
+      END
+C
+C
+C * ROUTINE TO COMPUTE THE INTERSECTION COORDINATE AT LEFT SIDE OF CELL
+      FUNCTION ALEFT(I,J)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      ALEFT=DELY*((J-2)+AINTER(FOLD(I-1),FNEW(I-1)))+YLOW
+      RETURN
+      END
+C
+C
+C * ROUTINE TO COMPUTE THE INTERSECTION COORDINATE AT RIGHT SIDE OF CELL
+      FUNCTION RIGHT(I,J)
+      COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+      RIGHT=DELY*((J-2)+AINTER(FOLD(I),FNEW(I)))+YLOW
+      RETURN
+      END
+C
+C
+C * ROUTINE TO DO LINEAR INTERPOLATION (RETURNS THE FRACTION ALONG THE
+C * LENGTH BETWEEN THE POINT OF VALUES A AND B THAT THE CONTOUR FOR THE
+C * CURRENT VALUE SHOULD BE PLACED
+        FUNCTION AINTER(A,B)
+        COMMON /CTRCOM/XLOW,YLOW,DELX,DELY,V,FOLD(256),FNEW(256)
+        AINTER=(V-A)/(B-A)
+        RETURN
+        END
+</pre>
+<hr>
+<center><a name="appendix_b"><h2>APPENDIX B</h2></a></center>
+<p>
+    The following is a program written in C by the author that  implements  the
+line  segment  matching  improved  contour  plotting algorithm given in <a href="#2_3_3">Section
+2.3.3</a>.
+</p><p>
+</p><pre>/* NEWCNTR.C */
+#include &lt;stdio.h&gt;
+#define STATS
+
+#ifdef STATS
+#define LINE(a,b,c,d) line(a, b, c, d); nline++;
+#else
+#define LINE(a,b,c,d) line(a, b, c, d)
+#endif
+
+#define WID 8.0
+#define IWID 8
+#define HEI 8.0
+#define IHEI 8
+#define HPIX 60.0
+#define IHPIX 60
+#define VPIX 72.0
+#define IVPIX 72
+#define ROWS (IHEI*IVPIX+1)
+#define ROW_16 ((ROWS+15)/16)
+#define COLS (IWID*IHPIX+1)
+
+struct fnct_stru {
+    float fnct_val;
+    short left_len, right_len, top_len, bot_len;
+} *fnct_data;
+#define FNCT_DATA(i,j) (*(fnct_data+i*ROWS+j))
+short fnct_use[COLS][ROW_16];
+struct node {
+    union ptr {
+        struct node *nptr;
+        struct {
+            short row, col;
+        } f_ele;
+    } nw, ne, sw, se;
+} nil;
+union ptr cntr1();
+
+short pow2[020] = {
+        1,      2,      4,      010,    020,    040,    0100,   0200,
+        0400,   01000,  02000,  04000,  010000, 020000, 040000, 0100000 };
+
+extern fortran float FUNCT();
+extern char *sbrk();
+char *sbrk1();
+float fnct(), *val, delx, dely, xoff, yoff;
+int numval;
+#ifdef STATS
+int nline, nfunct, fduse;
+#endif
+
+newcntr(xmin, xmax, ymin, ymax, m, n, v, nv, file)
+double xmin, xmax, ymin, ymax;
+float *v;
+int m, n, nv;
+char *file;
+{
+    int i, j;
+    int x3, x4, y3, y4;
+    char *s1;
+    union ptr *narray;
+#define NARRAY(a,b) (*(narray+a*n+b))
+#ifdef STATS
+    int d;
+
+    fduse = 0;
+    nline = 0;
+    nfunct = 0;
+#endif
+    s1 = sbrk(0);   /* save current top of memory */
+    fnct_data = (struct fnct_stru *)sbrk1(COLS*ROWS*sizeof(struct fnct_stru));
+    narray = (union ptr *)sbrk1(m*n*sizeof(union ptr));
+    val = v;
+    numval = nv;
+    delx = (xmax-xmin)/(WID*HPIX);
+    xoff = xmin;
+    dely = (ymax-ymin)/(HEI*VPIX);
+    yoff = ymin;
+    for (i = 0; i &lt; COLS; i++)
+        for (j = 0; j &lt; ROW_16; j++)
+            fnct_use[i][j] = 0;
+    x4 = 0;
+    for (i = 0; i &lt; m; i++) {
+        x3 = x4;
+        x4 = ((i+1)*(COLS-1))/m;
+        y4 = 0;
+        for (j = 0; j &lt; n; j++) {
+            y3 = y4;
+            y4 = ((j+1)*(ROWS-1))/n;
+            NARRAY(i,j) = cntr1(x3, x4, y3, y4);
+        }
+    }
+    iniplt();
+    /* The following code is for plotting the level curves */
+    for (i = 0; i &lt; m; i++)
+        for (j = 0; j &lt; n; j++)
+            pass2(NARRAY(i,j));
+    if (finplt(file) == 0) {
+        fprintf(stderr, "Can't create `%s'\n", file);
+        fflush(stderr);
+    }
+#ifdef STATS
+    printf("Number of calls to line :  %d\n", nline);
+    printf("Number of calls to FUNCT :  %d\n", nfunct);
+    d = sbrk(0)-s1;
+    printf("Dynamic memory used %dK + %d. words\n", d&gt;&gt;10, d&amp;1023);
+    printf("Utilization of fnct_data array:  %f %%\n",
+        (100.0*fduse)/(COLS*ROWS));
+    fflush(stdout);
+#endif
+    brk(s1);   /* free up dynamically allocated memory */
+}
+
+union ptr cntr1(x1, x2, y1, y2)
+int x1, x2, y1, y2;
+{
+    float f11, f12, f21, f22, f33;
+    int x3, y3, i, j;
+    union ptr p;
+
+    if ((x1 == x2) || (y1 == y2)) {   /* if not a real cell, punt */
+        p.nptr = &amp;nil;
+        return (p);
+    }
+    f11 = fnct(x1, y1);
+    f12 = fnct(x1, y2);
+    f21 = fnct(x2, y1);
+    f22 = fnct(x2, y2);
+    if ((x2 &gt; x1+1) || (y2 &gt; y1+1)) {   /* is cell divisible? */
+        x3 = (x1+x2)/2;
+        y3 = (y1+y2)/2;
+        f33 = fnct(x3, y3);
+        i = j = 0;
+        if (f33 &lt; f11) i++; else if (f33 &gt; f11) j++;
+        if (f33 &lt; f12) i++; else if (f33 &gt; f12) j++;
+        if (f33 &lt; f21) i++; else if (f33 &gt; f21) j++;
+        if (f33 &lt; f22) i++; else if (f33 &gt; f22) j++;
+        if ((i &gt; 2) || (j &gt; 2)) {   /* should we divide cell? */
+            /* subdivide cell */
+            p.nptr = (struct node *)sbrk1(sizeof(struct node));
+            p.nptr-&gt;sw = cntr1(x1, x3, y1, y3);
+            p.nptr-&gt;se = cntr1(x3, x2, y1, y3);
+            p.nptr-&gt;nw = cntr1(x1, x3, y3, y2);
+            p.nptr-&gt;ne = cntr1(x3, x2, y3, y2);
+            return (p);
+        }
+    }
+    /* install cell in array */
+    FNCT_DATA(x1,y2).bot_len = FNCT_DATA(x1,y1).top_len = x2-x1;
+    FNCT_DATA(x2,y1).left_len = FNCT_DATA(x1,y1).right_len = y2-y1;
+    p.f_ele.col = x1;
+    p.f_ele.row = y1;
+    return (p);
+}
+
+pass2(p)   /* draws the contour lines */
+union ptr p;
+{
+    if (p.nptr == &amp;nil) return;   /* if not a real cell, punt */
+    if (seg(p.nptr) &lt; 04000) { /* if segment # is &lt; 04000 its not a pointer */
+        int x1, x2, y1, y2, left, right, top, bot, old, new, i, j;
+        float yy0, yy1, xx0, xx1, f11, f12, f21, f22, fold, fnew, v, x3, y3, f;
+
+        x1 = p.f_ele.col;
+        y1 = p.f_ele.row;
+        x2 = FNCT_DATA(x1,y1).top_len+x1;
+        y2 = FNCT_DATA(x1,y1).right_len+y1;
+        f11 = FNCT_DATA(x1,y1).fnct_val;
+        f12 = FNCT_DATA(x1,y2).fnct_val;
+        f21 = FNCT_DATA(x2,y1).fnct_val;
+        f22 = FNCT_DATA(x2,y2).fnct_val;
+        for (i = 0; i &lt; numval; i++) {
+            v = val[i];
+            j = 0;
+            if (f21 &gt; v) j++;
+            if (f11 &gt; v) j |= 2;
+            if (f22 &gt; v) j |= 4;
+            if (f12 &gt; v) j |= 010;
+            if ((f11 &gt; v) ^ (f12 &gt; v)) {
+                if ((FNCT_DATA(x1,y1).left_len != 0) &amp;&amp;
+                    (FNCT_DATA(x1,y1).left_len &lt; FNCT_DATA(x1,y1).right_len)) {
+                    old = y1;
+                    fold = f11;
+                    while (1) {
+                        new = old+FNCT_DATA(x1,old).left_len;
+                        fnew = FNCT_DATA(x1,new).fnct_val;
+                        if ((fnew &gt; v) ^ (fold &gt; v)) break;
+                        old = new;
+                        fold = fnew;
+                    }
+                    yy0 = ((old-y1)+(new-old)*(v-fold)/(fnew-fold))/(y2-y1);
+                } else
+                    yy0 = (v-f11)/(f12-f11);
+                left = y1+(y2-y1)*yy0+0.5;
+            }
+            if ((f21 &gt; v) ^ (f22 &gt; v)) {
+                if ((FNCT_DATA(x2,y1).right_len != 0) &amp;&amp;
+                    (FNCT_DATA(x2,y1).right_len &lt; FNCT_DATA(x2,y1).left_len)) {
+                    old = y1;
+                    fold = f21;
+                    while (1) {
+                        new = old+FNCT_DATA(x2,old).right_len;
+                        fnew = FNCT_DATA(x2,new).fnct_val;
+                        if ((fnew &gt; v) ^ (fold &gt; v)) break;
+                        old = new;
+                        fold = fnew;
+                    }
+                    yy1 = ((old-y1)+(new-old)*(v-fold)/(fnew-fold))/(y2-y1);
+                } else
+                    yy1 = (v-f21)/(f22-f21);
+                right = y1+(y2-y1)*yy1+0.5;
+            }
+            if ((f21 &gt; v) ^ (f11 &gt; v)) {
+                if ((FNCT_DATA(x1,y1).bot_len != 0) &amp;&amp;
+                    (FNCT_DATA(x1,y1).bot_len &lt; FNCT_DATA(x1,y1).top_len)) {
+                    old = x1;
+                    fold = f11;
+                    while (1) {
+                        new = old+FNCT_DATA(old,y1).bot_len;
+                        fnew = FNCT_DATA(new,y1).fnct_val;
+                        if ((fnew &gt; v) ^ (fold &gt; v)) break;
+                        old = new;
+                        fold = fnew;
+                    }
+                    xx0 = ((old-x1)+(new-old)*(v-fold)/(fnew-fold))/(x2-x1);
+                } else
+                    xx0 = (v-f11)/(f21-f11);
+                bot = x1+(x2-x1)*xx0+0.5;
+            }
+            if ((f22 &gt; v) ^ (f12 &gt; v)) {
+                if ((FNCT_DATA(x1,y2).top_len != 0) &amp;&amp;
+                    (FNCT_DATA(x1,y2).top_len &lt; FNCT_DATA(x1,y2).bot_len)) {
+                    old = x1;
+                    fold = f12;
+                    while (1) {
+                        new = old+FNCT_DATA(old,y2).top_len;
+                        fnew = FNCT_DATA(new,y2).fnct_val;
+                        if ((fnew &gt; v) ^ (fold &gt; v)) break;
+                        old = new;
+                        fold = fnew;
+                   }
+                   xx1 = ((old-x1)+(new-old)*(v-fold)/(fnew-fold))/(x2-x1);
+                } else
+                    xx1 = (v-f12)/(f22-f12);
+                top = x1+(x2-x1)*xx1+0.5;
+            }
+            switch (j) {
+            case 7:
+            case 010:
+                LINE(x1,left,top,y2);
+                break;
+            case 5:
+            case 012:
+                LINE(bot,y1,top,y2);
+                break;
+            case 2:
+            case 015:
+                LINE(x1,left,bot,y1);
+                break;
+            case 4:
+            case 013:
+                LINE(top,y2,x2,right);
+                break;
+            case 3:
+            case 014:
+                LINE(x1,left,x2,right);
+                break;
+            case 1:
+            case 016:
+                LINE(bot,y1,x2,right);
+                break;
+            case 0:
+            case 017:
+                break;
+            case 6:
+            case 011:
+                y3 = (xx0*(yy1-yy0)+yy0)/(1.0-(xx1-xx0)*(yy1-yy0));
+                x3 = y3*(xx1-xx0)+xx0;
+                x3 = x1+x3*(x2-x1);
+                y3 = y1+y3*(y2-y1);
+                x3 = xoff+x3*delx;
+                y3 = yoff+y3*dely;
+                f = FUNCT(&amp;x3, &amp;y3);
+#ifdef STATS
+                nfunct++;
+#endif
+                if (f == v) {
+                    LINE(bot,y1,top,y2);
+                    LINE(x1,left,x2,right);
+                } else
+                    if (((f &gt; v) &amp;&amp; (f22 &gt; v)) || ((f &lt; v) &amp;&amp; (f22 &lt; v))) {
+                        LINE(x1,left,top,y2);
+                        LINE(bot,y1,x2,right);
+                    } else {
+                        LINE(x1,left,bot,y1);
+                        LINE(top,y2,x2,right);
+                    }
+            }
+        }
+    } else {   /* its a node */
+        pass2(p.nptr-&gt;sw);
+        pass2(p.nptr-&gt;se);
+        pass2(p.nptr-&gt;nw);
+        pass2(p.nptr-&gt;ne);
+    }
+}
+
+float fnct(x, y)   /* evaluate FUNCT if we must, otherwise use array ele. */
+int x, y;
+{
+    float x1, y1;
+
+    if (fnct_use[x][y&gt;&gt;4] &amp; pow2[y&amp;017])  /* is it already in the array */
+        return(FNCT_DATA(x,y).fnct_val);
+    /* not in the array, create new array element */
+#ifdef STATS
+    nfunct++;
+    fduse++;
+#endif
+    fnct_use[x][y&gt;&gt;4] |= pow2[y&amp;017];
+    x1 = xoff+delx*x;
+    y1 = yoff+dely*y;
+    FNCT_DATA(x,y).top_len = 0;
+    FNCT_DATA(x,y).bot_len = 0;
+    FNCT_DATA(x,y).right_len = 0;
+    FNCT_DATA(x,y).left_len = 0;
+    return(FNCT_DATA(x,y).fnct_val = FUNCT(&amp;x1, &amp;y1));
+}
+
+char *sbrk1(n)
+int n;
+{
+    char *p;
+
+    p = sbrk(n);
+    if (p == (-1)) {
+        fprintf(stderr, "Out of memory.\n");
+        fflush(stderr);
+        exit(1);
+    }
+    return (p);
+}
+
+seg(p)   /* extracts segment no. from a pointer */
+int p;   /* its really a pointer */
+{
+    return((p&gt;&gt;16)&amp;07777);
+}
+</pre>
+
+
+</body></html>

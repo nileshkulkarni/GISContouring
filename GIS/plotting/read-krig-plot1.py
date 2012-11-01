@@ -15,8 +15,8 @@ import matplotlib.pyplot as plt
 n=110 #intial itnye hi point pata hai
 
 
-f = open('himalayas.txt', 'r')
-size=(677,3)
+f = open('IITb.txt', 'r')
+size=(121,3)
 Data = zeros(size)
 s=f.readline()
 i=0
